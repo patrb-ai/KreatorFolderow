@@ -187,21 +187,31 @@ function TemplatePage({ onLogout }) {
     }
   };
 
-  const importFolders = async () => {
-    if (current.folders.length === 0) { alert('Brak folderów do zaimportowania.'); return; }
+  const runImport = async (name, folders) => {
     if (!window.showDirectoryPicker) {
       alert('Twoja przeglądarka nie obsługuje tej funkcji.\nUżyj Chrome lub Edge (wersja 86+).');
       return;
     }
     try {
       const rootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-      const mainHandle = await rootHandle.getDirectoryHandle(current.name, { create: true });
-      await createFoldersRecursive(mainHandle, current.folders);
+      const mainHandle = await rootHandle.getDirectoryHandle(name, { create: true });
+      await createFoldersRecursive(mainHandle, folders);
       alert(`✓ Foldery zostały utworzone w wybranej lokalizacji!`);
     } catch (err) {
       if (err.name === 'AbortError') return;
       alert(`Błąd: ${err.message}`);
     }
+  };
+
+  const importFolders = async () => {
+    if (current.folders.length === 0) { alert('Brak folderów do zaimportowania.'); return; }
+    await runImport(current.name, current.folders);
+  };
+
+  const importSelectedTemplate = async () => {
+    const tpl = templates.find(t => t.id === selectedTemplate);
+    if (!tpl) { alert('Zaznacz szablon który chcesz zaimportować.'); return; }
+    await runImport(tpl.name, tpl.folders);
   };
 
   const confirmName = () => {
@@ -322,7 +332,10 @@ function TemplatePage({ onLogout }) {
               h('button', { className: 'btn-white', onClick: saveTemplate }, 'Zapisz Szablon'),
               h('button', { className: 'btn-dark', onClick: importFolders, disabled: current.folders.length === 0 }, 'Importuj Foldery')
             )
-          : h('button', { className: 'btn-dark', onClick: createNew }, h(IconFolderPlus), 'Nowy Szablon')
+          : h(React.Fragment, null,
+              h('button', { className: 'btn-dark', onClick: createNew }, h(IconFolderPlus), 'Nowy Szablon'),
+              h('button', { className: 'btn-dark', onClick: importSelectedTemplate, disabled: !selectedTemplate }, 'Importuj Foldery')
+            )
       )
     )
   );

@@ -119,11 +119,7 @@ export default function TemplatePage() {
     alert('Szablon zapisany!')
   }
 
-  const importFolders = async () => {
-    if (currentTemplate.folders.length === 0) {
-      alert('Brak folderów do zaimportowania.')
-      return
-    }
+  const runImport = async (name: string, folders: FolderNode[]) => {
     if (!('showDirectoryPicker' in window)) {
       alert('Twoja przeglądarka nie obsługuje tej funkcji.\nUżyj Chrome lub Edge (wersja 86+).')
       return
@@ -131,14 +127,28 @@ export default function TemplatePage() {
     try {
       const root = await (window as Window & { showDirectoryPicker: (o?: object) => Promise<FileSystemDirectoryHandle> })
         .showDirectoryPicker({ mode: 'readwrite' })
-      const main = await root.getDirectoryHandle(currentTemplate.name, { create: true })
-      await createFoldersRecursive(main, currentTemplate.folders)
+      const main = await root.getDirectoryHandle(name, { create: true })
+      await createFoldersRecursive(main, folders)
       alert(`✓ Foldery zostały utworzone w wybranej lokalizacji!`)
     } catch (err: unknown) {
       if ((err as { name?: string }).name === 'AbortError') return
       const msg = err instanceof Error ? err.message : String(err)
       alert(`Błąd: ${msg}`)
     }
+  }
+
+  const importFolders = async () => {
+    if (currentTemplate.folders.length === 0) {
+      alert('Brak folderów do zaimportowania.')
+      return
+    }
+    await runImport(currentTemplate.name, currentTemplate.folders)
+  }
+
+  const importSelectedTemplate = async () => {
+    const tpl = templates.find(t => t.id === selectedTemplateId)
+    if (!tpl) { alert('Zaznacz szablon który chcesz zaimportować.'); return }
+    await runImport(tpl.name, tpl.folders)
   }
 
   const updateTemplateName = () => {
@@ -407,13 +417,24 @@ export default function TemplatePage() {
             </button>
           </>
         ) : (
-          <button
-            onClick={createNewTemplate}
-            className="flex items-center gap-2 bg-[#1d293d] text-white text-[14px] px-3 h-[40px] rounded-[8px] cursor-pointer hover:opacity-90 border-0"
-          >
-            <FolderPlus size={24} color="white" strokeWidth={1.5} />
-            Nowy Szablon
-          </button>
+          <>
+            <button
+              onClick={createNewTemplate}
+              className="flex items-center gap-2 bg-[#1d293d] text-white text-[14px] px-3 h-[40px] rounded-[8px] cursor-pointer hover:opacity-90 border-0"
+            >
+              <FolderPlus size={24} color="white" strokeWidth={1.5} />
+              Nowy Szablon
+            </button>
+            <button
+              onClick={importSelectedTemplate}
+              disabled={!selectedTemplateId}
+              className={`flex items-center bg-[#1d293d] text-white text-[14px] px-3 h-[40px] rounded-[8px] border-0 ${
+                !selectedTemplateId ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-90'
+              }`}
+            >
+              Importuj Foldery
+            </button>
+          </>
         )}
       </div>
     </div>
