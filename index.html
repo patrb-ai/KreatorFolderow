@@ -1,43 +1,15 @@
 <!DOCTYPE html>
 <html lang="pl">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kreator Folderów</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="container">
-    <h1>Kreator Folderów</h1>
-    <p class="subtitle">Zaprojektuj i wygeneruj strukturę katalogów</p>
-
-    <div class="editor">
-      <label for="structure">Wpisz strukturę (jeden folder na linię, użyj spacji/tab do zagnieżdżenia):</label>
-      <textarea id="structure" placeholder="projekt/&#10;  src/&#10;    components/&#10;    assets/&#10;  public/&#10;  docs/"></textarea>
-    </div>
-
-    <div class="actions">
-      <button id="btn-preview">Podgląd</button>
-      <button id="btn-generate">Generuj skrypt</button>
-      <button id="btn-clear">Wyczyść</button>
-    </div>
-
-    <div class="preview" id="preview-panel" hidden>
-      <h2>Podgląd struktury</h2>
-      <pre id="tree-output"></pre>
-    </div>
-
-    <div class="output" id="output-panel" hidden>
-      <h2>Skrypt PowerShell / Bash</h2>
-      <div class="tabs">
-        <button class="tab active" data-tab="powershell">PowerShell</button>
-        <button class="tab" data-tab="bash">Bash</button>
-      </div>
-      <pre id="script-output"></pre>
-      <button id="btn-copy">Kopiuj do schowka</button>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kreator Folderów</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
