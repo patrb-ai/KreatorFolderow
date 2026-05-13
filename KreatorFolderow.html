@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kreator Folderów</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; min-height: 100vh; }
+    input, button { font-family: inherit; }
+    .page { min-height: 100vh; background: #f8fafc; padding: 2rem 1rem; }
+    /* Login */
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f8fafc; }
+    .login-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 2.5rem; width: 454px; }
+    .login-title { font-size: 32px; font-weight: 700; color: #314158; line-height: 1.5; margin-bottom: 2rem; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.5rem; }
+    .form-label { font-size: 14px; color: #314158; }
+    .form-input { background: #f8fafc; border: none; border-radius: 8px; height: 48px; padding: 0 12px; font-size: 14px; outline: none; color: #314158; }
+    .btn-signin { background: #020618; color: #fff; border: none; border-radius: 8px; height: 48px; width: 100%; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .btn-signin:hover { opacity: 0.9; }
+    .error-msg { color: #dc2626; font-size: 12px; margin-bottom: 8px; }
+    /* App */
+    .app-inner { max-width: 916px; margin: 0 auto; }
+    .topbar { display: flex; justify-content: flex-end; margin-bottom: 1.5rem; }
+    .btn-logout { background: none; border: none; font-size: 16px; font-weight: 600; color: #314158; cursor: pointer; }
+    .btn-logout:hover { opacity: 0.8; }
+    /* Tabs */
+    .tab-bar { background: #fff; border: 1px solid #f1f5f9; border-radius: 16px; padding: 8px; display: inline-flex; gap: 8px; margin-bottom: 12px; }
+    .tab-btn { height: 40px; padding: 0 16px; border-radius: 8px; border: none; font-size: 14px; color: #314158; cursor: pointer; }
+    .tab-btn.active { background: #e2e8f0; font-weight: 500; }
+    .tab-btn:not(.active) { background: #f8fafc; font-weight: 400; }
+    /* Panel */
+    .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; }
+    .panel-header { background: #f1f5f9; border-radius: 16px 16px 0 0; height: 47px; padding: 0 2rem; display: flex; align-items: center; }
+    .panel-title { font-size: 14px; font-weight: 600; color: #314158; cursor: pointer; }
+    .panel-title-input { font-size: 14px; font-weight: 600; color: #314158; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px 8px; outline: none; }
+    .panel-body { height: 420px; overflow-y: auto; padding: 1rem 2rem; }
+    .empty-msg { color: #94a3b8; font-size: 14px; text-align: center; margin-top: 5rem; }
+    /* Folder row */
+    .folder-row { position: relative; display: flex; align-items: center; height: 40px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+    .folder-row.selected { background: #f8fafc; }
+    .connector { position: absolute; height: 1px; background: #e2e8f0; top: 20px; }
+    .folder-icon { position: absolute; display: flex; align-items: center; }
+    .folder-name { position: absolute; font-size: 16px; color: #314158; user-select: none; }
+    .folder-name.bold { font-weight: 600; }
+    .folder-name-input { position: absolute; font-size: 16px; color: #314158; background: #fff; border: 1px solid #e2e8f0; border-radius: 4px; padding: 2px 8px; outline: none; z-index: 10; }
+    .delete-btn { position: absolute; right: 12px; cursor: pointer; display: flex; opacity: 1; }
+    .delete-btn:hover { opacity: 0.7; }
+    /* Template row */
+    .template-row { position: relative; display: flex; align-items: center; height: 40px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+    .template-row.selected { background: #f8fafc; }
+    /* Bottom buttons */
+    .bottom-bar { display: flex; gap: 12px; margin-top: 1rem; }
+    .btn-dark { display: flex; align-items: center; gap: 8px; background: #1d293d; color: #fff; border: none; border-radius: 8px; height: 40px; padding: 0 12px; font-size: 14px; cursor: pointer; }
+    .btn-dark:hover { opacity: 0.9; }
+    .btn-dark:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-white { display: flex; align-items: center; background: #fff; color: #020618; border: 1px solid #e2e8f0; border-radius: 8px; height: 40px; padding: 0 12px; font-size: 14px; cursor: pointer; }
+    .btn-white:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const { useState, useEffect, useRef } = React;
+const h = React.createElement;
+
+// SVG icons
+const IconFolder = () => h('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: '#E8AC3E', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+  h('path', { d: 'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2z' })
+);
+const IconFolders = () => h('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: '#3878D4', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+  h('path', { d: 'M20 17a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 4.9A2 2 0 0 0 7.93 4H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2Z' }),
+  h('path', { d: 'M2 9a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2Z' })
+);
+const IconFolderPlus = () => h('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: 'white', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' },
+  h('path', { d: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' }),
+  h('line', { x1: 12, y1: 11, x2: 12, y2: 17 }),
+  h('line', { x1: 9, y1: 14, x2: 15, y2: 14 })
+);
+const IconTrash = () => h('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'none', stroke: '#020618', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' },
+  h('polyline', { points: '3 6 5 6 21 6' }),
+  h('path', { d: 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6' }),
+  h('path', { d: 'M10 11v6' }),
+  h('path', { d: 'M14 11v6' }),
+  h('path', { d: 'M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2' })
+);
+
+// Login Page
+function LoginPage({ onLogin }) {
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (login === 'Admin' && password === 'admin123') {
+      localStorage.setItem('isAuthenticated', 'true');
+      onLogin();
+    } else {
+      setError('Nieprawidłowy login lub hasło');
+    }
+  };
+
+  return h('div', { className: 'login-wrap' },
+    h('div', { className: 'login-card' },
+      h('h1', { className: 'login-title' }, 'Login'),
+      h('form', { onSubmit: handleSubmit },
+        h('div', { className: 'form-group' },
+          h('label', { className: 'form-label' }, 'Login'),
+          h('input', { className: 'form-input', type: 'text', value: login, onChange: e => setLogin(e.target.value) })
+        ),
+        h('div', { className: 'form-group' },
+          h('label', { className: 'form-label' }, 'Password'),
+          h('input', { className: 'form-input', type: 'password', value: password, onChange: e => setPassword(e.target.value) })
+        ),
+        error && h('p', { className: 'error-msg' }, error),
+        h('button', { type: 'submit', className: 'btn-signin' }, 'Sign In')
+      )
+    )
+  );
+}
+
+// Template Page
+function TemplatePage({ onLogout }) {
+  const [activeTab, setActiveTab] = useState('creator');
+  const [templates, setTemplates] = useState(() => {
+    const s = localStorage.getItem('templates');
+    return s ? JSON.parse(s) : [];
+  });
+  const [counter, setCounter] = useState(0);
+  const [current, setCurrent] = useState({ id: `t_${Date.now()}`, name: 'Nazwa Szablonu', folders: [] });
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState('Nazwa Szablonu');
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+
+  const nextId = () => { const id = `f_${Date.now()}_${counter}`; setCounter(c => c + 1); return id; };
+
+  const findUpdate = (folders, id, fn) =>
+    folders.map(f => f.id === id ? fn(f) : { ...f, children: findUpdate(f.children, id, fn) });
+
+  const findDelete = (folders, id) =>
+    folders.filter(f => f.id !== id).map(f => ({ ...f, children: findDelete(f.children, id) }));
+
+  const addFolder = () => {
+    const nf = { id: nextId(), name: 'Nowy Folder', children: [], isEditing: false };
+    if (selectedFolder) {
+      setCurrent(t => ({ ...t, folders: findUpdate(t.folders, selectedFolder, f => ({ ...f, children: [...f.children, nf] })) }));
+    } else {
+      setCurrent(t => ({ ...t, folders: [...t.folders, nf] }));
+    }
+  };
+
+  const deleteFolder = (id) => {
+    setCurrent(t => ({ ...t, folders: findDelete(t.folders, id) }));
+    if (selectedFolder === id) setSelectedFolder(null);
+  };
+
+  const startEdit = (id) => setCurrent(t => ({ ...t, folders: findUpdate(t.folders, id, f => ({ ...f, isEditing: true })) }));
+
+  const saveName = (id, name) => setCurrent(t => ({ ...t, folders: findUpdate(t.folders, id, f => ({ ...f, name, isEditing: false })) }));
+
+  const cancelEdit = (id) => setCurrent(t => ({ ...t, folders: findUpdate(t.folders, id, f => ({ ...f, isEditing: false })) }));
+
+  const saveTemplate = () => {
+    if (current.folders.length === 0) { alert('Dodaj przynajmniej jeden folder'); return; }
+    const updated = [...templates, current];
+    setTemplates(updated);
+    localStorage.setItem('templates', JSON.stringify(updated));
+    const newId = `t_${Date.now()}_${counter}`;
+    setCurrent({ id: newId, name: 'Nazwa Szablonu', folders: [] });
+    setTempName('Nazwa Szablonu');
+    setCounter(c => c + 1);
+    alert('Szablon zapisany!');
+  };
+
+  const createFoldersRecursive = async (parentHandle, folders) => {
+    for (const folder of folders) {
+      const dirHandle = await parentHandle.getDirectoryHandle(folder.name, { create: true });
+      if (folder.children.length > 0) {
+        await createFoldersRecursive(dirHandle, folder.children);
+      }
+    }
+  };
+
+  const importFolders = async () => {
+    if (current.folders.length === 0) { alert('Brak folderów do zaimportowania.'); return; }
+    if (!window.showDirectoryPicker) {
+      alert('Twoja przeglądarka nie obsługuje tej funkcji.\nUżyj Chrome lub Edge (wersja 86+).');
+      return;
+    }
+    try {
+      const rootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const mainHandle = await rootHandle.getDirectoryHandle(current.name, { create: true });
+      await createFoldersRecursive(mainHandle, current.folders);
+      alert(`✓ Foldery zostały utworzone w wybranej lokalizacji!`);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      alert(`Błąd: ${err.message}`);
+    }
+  };
+
+  const confirmName = () => {
+    if (tempName.trim()) { setCurrent(t => ({ ...t, name: tempName.trim() })); }
+    setEditingName(false);
+  };
+
+  const deleteTemplate = (id) => {
+    const updated = templates.filter(t => t.id !== id);
+    setTemplates(updated);
+    localStorage.setItem('templates', JSON.stringify(updated));
+    if (selectedTemplate === id) setSelectedTemplate(null);
+  };
+
+  const loadTemplate = (tpl) => {
+    setCurrent(tpl); setTempName(tpl.name);
+    setActiveTab('creator'); setSelectedFolder(null);
+  };
+
+  const createNew = () => {
+    setActiveTab('creator');
+    setCurrent({ id: `t_${Date.now()}_${counter}`, name: 'Nazwa Szablonu', folders: [] });
+    setTempName('Nazwa Szablonu');
+    setSelectedFolder(null); setEditingName(true);
+    setCounter(c => c + 1);
+  };
+
+  const renderFolder = (folder, level) => {
+    const isSelected = selectedFolder === folder.id;
+    const left = 12 + level * 40;
+    return h('div', { key: folder.id },
+      h('div', {
+        className: `folder-row${isSelected ? ' selected' : ''}`,
+        onClick: (e) => { e.stopPropagation(); setSelectedFolder(folder.id); }
+      },
+        level > 0 && h('div', { className: 'connector', style: { left: 12 + (level - 1) * 40, width: 23 } }),
+        h('div', { className: 'folder-icon', style: { left } }, h(IconFolder)),
+        folder.isEditing
+          ? h('input', {
+              className: 'folder-name-input',
+              style: { left: left + 36 },
+              defaultValue: folder.name,
+              autoFocus: true,
+              onClick: e => e.stopPropagation(),
+              onBlur: e => e.target.value.trim() ? saveName(folder.id, e.target.value.trim()) : cancelEdit(folder.id),
+              onKeyDown: e => {
+                if (e.key === 'Enter') e.currentTarget.value.trim() ? saveName(folder.id, e.currentTarget.value.trim()) : cancelEdit(folder.id);
+                if (e.key === 'Escape') cancelEdit(folder.id);
+              }
+            })
+          : h('p', {
+              className: `folder-name${isSelected ? ' bold' : ''}`,
+              style: { left: left + 36 },
+              onDoubleClick: e => { e.stopPropagation(); startEdit(folder.id); }
+            }, folder.name),
+        isSelected && h('div', {
+          className: 'delete-btn',
+          onClick: e => { e.stopPropagation(); deleteFolder(folder.id); }
+        }, h(IconTrash))
+      ),
+      folder.children.map(child => renderFolder(child, level + 1))
+    );
+  };
+
+  return h('div', { className: 'page' },
+    h('div', { className: 'app-inner' },
+      h('div', { className: 'topbar' },
+        h('button', { className: 'btn-logout', onClick: onLogout }, 'Wyloguj')
+      ),
+      h('div', { className: 'tab-bar' },
+        h('button', { className: `tab-btn${activeTab === 'creator' ? ' active' : ''}`, onClick: () => setActiveTab('creator') }, 'Kreator Folderów'),
+        h('button', { className: `tab-btn${activeTab === 'templates' ? ' active' : ''}`, onClick: () => setActiveTab('templates') }, 'Szablony')
+      ),
+      h('div', { className: 'panel' },
+        h('div', { className: 'panel-header' },
+          activeTab === 'creator'
+            ? (editingName
+                ? h('input', { className: 'panel-title-input', value: tempName, autoFocus: true,
+                    onChange: e => setTempName(e.target.value),
+                    onBlur: confirmName,
+                    onKeyDown: e => e.key === 'Enter' && confirmName() })
+                : h('p', { className: 'panel-title', onClick: () => setEditingName(true) }, current.name))
+            : h('p', { className: 'panel-title', style: { cursor: 'default' } }, 'Lista Szablonów')
+        ),
+        h('div', {
+          className: 'panel-body',
+          onClick: e => { if (e.target === e.currentTarget) setSelectedFolder(null); }
+        },
+          activeTab === 'creator'
+            ? (current.folders.length === 0
+                ? h('p', { className: 'empty-msg' }, 'Brak folderów. Kliknij "Dodaj folder" aby rozpocząć.')
+                : h('div', { onClick: e => { if (e.target === e.currentTarget) setSelectedFolder(null); } },
+                    current.folders.map(f => renderFolder(f, 0))
+                  ))
+            : (templates.length === 0
+                ? h('p', { className: 'empty-msg' }, 'Brak szablonów. Kliknij "Nowy Szablon" aby utworzyć pierwszy.')
+                : templates.map(tpl =>
+                    h('div', {
+                      key: tpl.id,
+                      className: `template-row${selectedTemplate === tpl.id ? ' selected' : ''}`,
+                      onClick: () => setSelectedTemplate(tpl.id),
+                      onDoubleClick: () => loadTemplate(tpl)
+                    },
+                      h('div', { style: { position: 'absolute', left: 12, display: 'flex' } }, h(IconFolders)),
+                      h('p', { style: { position: 'absolute', left: 48, fontSize: 16, color: '#314158' } }, tpl.name),
+                      selectedTemplate === tpl.id && h('div', {
+                        className: 'delete-btn',
+                        onClick: e => { e.stopPropagation(); deleteTemplate(tpl.id); }
+                      }, h(IconTrash))
+                    )
+                  ))
+        )
+      ),
+      h('div', { className: 'bottom-bar' },
+        activeTab === 'creator'
+          ? h(React.Fragment, null,
+              h('button', { className: 'btn-dark', onClick: addFolder }, h(IconFolderPlus), 'Dodaj folder'),
+              h('button', { className: 'btn-white', onClick: saveTemplate }, 'Zapisz Szablon'),
+              h('button', { className: 'btn-dark', onClick: importFolders, disabled: current.folders.length === 0 }, 'Importuj Foldery')
+            )
+          : h('button', { className: 'btn-dark', onClick: createNew }, h(IconFolderPlus), 'Nowy Szablon')
+      )
+    )
+  );
+}
+
+// App
+function App() {
+  const [auth, setAuth] = useState(!!localStorage.getItem('isAuthenticated'));
+  const login = () => setAuth(true);
+  const logout = () => { localStorage.removeItem('isAuthenticated'); setAuth(false); };
+  return auth ? h(TemplatePage, { onLogout: logout }) : h(LoginPage, { onLogin: login });
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+</script>
+</body>
+</html>

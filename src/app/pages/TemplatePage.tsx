@@ -1,8 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import JSZip from 'jszip'
 import { Folder, Folders, FolderPlus, Trash2 } from 'lucide-react'
 import type { FolderNode, Template } from '../../types'
+
+async function createFoldersRecursive(
+  parent: FileSystemDirectoryHandle,
+  folders: FolderNode[]
+): Promise<void> {
+  for (const folder of folders) {
+    const dir = await parent.getDirectoryHandle(folder.name, { create: true })
+    if (folder.children.length > 0) {
+      await createFoldersRecursive(dir, folder.children)
+    }
+  }
+}
 
 export default function TemplatePage() {
   const navigate = useNavigate()
@@ -108,50 +119,25 @@ export default function TemplatePage() {
     alert('Szablon zapisany!')
   }
 
-  const addFoldersToZip = (zip: JSZip, folders: FolderNode[], parent = '') => {
-    folders.forEach(f => {
-      const path = parent ? `${parent}/${f.name}` : f.name
-      zip.folder(path)
-      if (f.children.length > 0) addFoldersToZip(zip, f.children, path)
-    })
-  }
-
   const importFolders = async () => {
     if (currentTemplate.folders.length === 0) {
       alert('Brak folderów do zaimportowania.')
       return
     }
+    if (!('showDirectoryPicker' in window)) {
+      alert('Twoja przeglądarka nie obsługuje tej funkcji.\nUżyj Chrome lub Edge (wersja 86+).')
+      return
+    }
     try {
-      const zip = new JSZip()
-      const main = zip.folder(currentTemplate.name)!
-      addFoldersToZip(main, currentTemplate.folders)
-      main.file(
-        'README.txt',
-        `Struktura folderów: ${currentTemplate.name}\n` +
-        `Utworzono: ${new Date().toLocaleString('pl-PL')}\n\n` +
-        `Instrukcja:\n` +
-        `1. Rozpakuj to archiwum ZIP w wybranym miejscu\n` +
-        `2. Struktura folderów zostanie automatycznie utworzona\n` +
-        `3. Możesz usunąć ten plik README.txt\n\n` +
-        `Struktura:\n` +
-        currentTemplate.folders
-          .map(f => `- ${f.name}${f.children.length > 0 ? ` (${f.children.length} podfolderów)` : ''}`)
-          .join('\n')
-      )
-      const blob = await zip.generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: { level: 9 },
-      })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${currentTemplate.name}.zip`
-      a.click()
-      URL.revokeObjectURL(url)
+      const root = await (window as Window & { showDirectoryPicker: (o?: object) => Promise<FileSystemDirectoryHandle> })
+        .showDirectoryPicker({ mode: 'readwrite' })
+      const main = await root.getDirectoryHandle(currentTemplate.name, { create: true })
+      await createFoldersRecursive(main, currentTemplate.folders)
+      alert(`✓ Foldery zostały utworzone w wybranej lokalizacji!`)
     } catch (err: unknown) {
+      if ((err as { name?: string }).name === 'AbortError') return
       const msg = err instanceof Error ? err.message : String(err)
-      alert(`Błąd podczas tworzenia archiwum: ${msg}`)
+      alert(`Błąd: ${msg}`)
     }
   }
 
